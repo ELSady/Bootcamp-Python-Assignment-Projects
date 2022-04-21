@@ -1,0 +1,244 @@
+
+# Specifying necessary libraries
+```{r}
+library(tidyverse)
+library(dplyr)
+library(tidyr)
+```
+
+# Load Dataset Train.csv.
+# First specify the location of the csv.
+```{r}
+df = read.csv('D:/Data Science/Snakes/train.csv')
+df
+```
+
+# Question 1 
+# Specify these following columns ID, Condition1, OverrallCond, YearBuilt, FullBath which satify GrLivArea column with a value of both 1717 or 2324.
+# First step is to select the the listed columns above.
+# Using the "select()" function.
+```{r}
+df %>% 
+  select(Id,Condition1,OverallCond,YearBuilt,FullBath,GrLivArea)
+```
+# Variable 'ID' and 'OverrallCond' were not found in dataset and was giving an error the first time i applied the code. For those two i had to change them to their correct spelling ones, 'Id' and 'OverallCond'. The code works as it should.
+
+# Next step is to speficy from which all of those columns satisfy GrLivArea value of both 1717 or 'd 2324. 
+# For this we might want to use the 'filter()' function to obtain the values we want to specify. As its filter which condition(s) is true or false based on our input argument / condition.
+```{r}
+df %>% 
+  filter(GrLivArea == 1717 | GrLivArea == 2324)%>%
+  select(Id,Condition1,OverallCond,YearBuilt,FullBath,GrLivArea)
+```
+# We got 4 datas which satisfy our condition of GrLivArea value for both 1717 or 2324. One of which is a house built in a century ago, 1915, having a good overall condiiton indexed by 5, which ois also featured with a fullbath.
+
+# Question 2
+# At which year houses are built the most if GarageCond = Ex (Exellent)?
+# First we want to check every unique values for GaraCond variable.
+```{r}
+df %>% 
+  distinct(GarageCond)
+```
+# It is seen that GarageCond has 5 different / unique values (excluding the NA). One of which is Ex (excellent), the filter condition for the question at hand.
+# We choose both YearBuilt and GarageYrBlt as the selected datas using GarageCond = Ex as the filter condition.
+```{r}
+df %>% 
+  filter(GarageCond=="Ex") %>% 
+  select(YearBuilt,GarageYrBlt)
+```
+# The house built in year 1940 and 1959 from dataset has an Excellent quality for the garage's condition. The same apllies for the garage built in 1966 and 2008 from dataset also has the same excellent quality.
+
+#Question 3 
+# At which year, The Saleprice's mean of the houses is the highest?
+# We first group datas based on what variable we want to observe. Because we are inquired the year when the saleprice's mean is the highest, then group datas based on time based data. There are YearBuilt, YearRemodeAdd, GarageYrBlt and YrSold.
+# Choosing to group datas based on YearBuilt.
+```{r}
+df %>% 
+  group_by(YearBuilt) %>% 
+  summarise(Rata2.Sale = mean(SalePrice)) %>% 
+  arrange(desc(Rata2.Sale))
+```
+# Houses built in 2010 and 2008 top the group for having the highest selling price point. What interesting is that even houses built over a century ago are still attactting many house seeker, evidence in high selling price point when compared to their newer counterparts.
+
+# Question 4
+# At the same year, do YearBuilt and YearRemodAll have a high selling price point?
+# For this question first we want to check which values in both YearBuilt and YearRemodAll are similar in dataset.
+```{r}
+yr = df[which(df$YearBuilt==df$YearRemodAdd),]
+yr
+```
+# Then, we filter and above datas with the SalePrice variable with descending order.
+```{r}
+yr %>% 
+  select(YearBuilt,YearRemodAdd,SalePrice)%>%
+  arrange(desc(SalePrice))
+```
+# Judging from the earlier dataset that we got from question 3. The highest mean for sale price point are around 394432. When comparing the data we just got with that data, it is very clear sale price point are relatively high, with the top 10 of the data is larger than the average sale price point.
+
+# Question 5
+# Add a new variable / column beside YearRemodAdd with a name of HouseAge.
+# Variable HouseAge is calculated with the following formula.
+# HouseAge = [2021-YearBuilt]
+# Now we will add that new variable using mutate() function
+```{r}
+df %>% 
+  mutate(HouseAge = 2021 - YearBuilt,.after=YearRemodAdd)%>%
+  select(YearBuilt,YearRemodAdd,HouseAge)%>%
+  arrange(desc(HouseAge))
+```
+
+# Question 6 
+# Assign another 10 feature engineerings based on these vaeiables, YearBuilt, OverallQual, YearRemodAdd, YrSold, MoSold.
+# We first select the specified variables.
+```{r}
+df %>% 
+    select(YearBuilt,OverallQual,YearRemodAdd,YrSold,MoSold)%>%
+    arrange(desc(YearBuilt))
+```
+
+# First feature engineering, we want to know how many years it took for the houses to get a remodification? 
+# Assign new variable 'YearbfrRemod'.
+```{r}
+FE1 = df %>% 
+  mutate(YearbfrRemod = YearRemodAdd - YearBuilt)%>%
+  select(YearBuilt,OverallQual,YearRemodAdd,YrSold,MoSold,YearbfrRemod)
+FE1 
+```
+
+# Second feature engineering, we want to know how many years it took for the houses before it sold out to a customer?
+# Assign new variable 'YeartillSold'.
+```{r}
+FE2 = df %>% 
+  mutate(YeartillSold = YrSold - YearBuilt)%>%
+  select(YearBuilt,OverallQual,YearRemodAdd,YrSold,MoSold,YeartillSold)
+FE2
+```
+
+# Third feature engnieering, we want to know how many years it took for the Remodified houses to finally be sold to a customer?
+# Assign new variable 'YearaftrRemodSold'.
+```{r}
+FE3 = df %>% 
+  mutate(YearaftrRemodSold = YrSold - YearRemodAdd)%>%
+  select(YearBuilt,OverallQual,YearRemodAdd,YrSold,MoSold,YearaftrRemodSold)
+FE3
+```
+
+# Fourth feature engineering, we want to know at which century when the houses were first built?
+# Assign new variable 'HouseCenth'.
+```{r}
+ely = c(1800:1899)
+md = c(1900:1999)
+nw = c(2000:2015)
+
+FE4 = df %>%
+  mutate(HouseCenth = case_when(YearBuilt %in% ely ~ "18th", 
+                           YearBuilt %in% md ~ "19th", 
+                           YearBuilt %in% nw ~ "20th"))%>%
+  select(YearBuilt,OverallQual,YearRemodAdd,YrSold,MoSold,HouseCenth)
+FE4
+
+```
+
+# Fifth feature engineering, we want to know more specificly at which part of century the houses fall in to when they were first built. For example if a house were built in year 1901, then it falls in to the category of early 19th century, if lets say the house were built in 1960, then it falss into mid 19th century.
+# Assign new variable HouseCenthSpc
+```{r}
+ely1 = c(1800:1835)
+ely2 = c(1836:1865)
+ely3 = c(1866:1899)
+md1 = c(1900:1935)
+md2 = c(1936:1965)
+md3 = c(1966:1999)
+nw1 = c(2000:2021)
+
+FE5 = df %>%
+  mutate(HouseCenthSpc = case_when(YearBuilt %in% ely1 ~ "Early 18th", 
+                           YearBuilt %in%  ely2 ~ "Mid 18th",
+                           YearBuilt %in%  ely3 ~ "End 18th",
+                           YearBuilt %in% md1 ~ "Early 19th", 
+                           YearBuilt %in% md2 ~ "Mid 19th",
+                           YearBuilt %in% md3 ~ "End 19th",
+                           YearBuilt %in% nw1 ~ "Early 20th"))%>%
+  select(YearBuilt,OverallQual,YearRemodAdd,YrSold,MoSold,HouseCenthSpc)
+FE5
+```
+
+# Sixth feature engineering, we want to specify at which condition houses falls into. Given from OverallQual variable, if the value is around 1-3 is Inhabitable, 4-6 is Poor , 7-8 is Good, 9-10 Excellent.
+# Assign new variable 'HouseCondition'.
+```{r}
+ih = c(1,2,3)
+pr = c(4,5,6)
+gd = c(7,8)
+xl = c(9,10)
+
+FE6 = df %>%
+  mutate(HouseCondition = case_when(OverallQual %in% ih ~ "Inhabitable", 
+                           OverallQual %in%  pr ~ "Poor",
+                           OverallQual %in%  gd ~ "Good",
+                           OverallQual %in%  xl ~ "Excellent"))%>%
+  select(YearBuilt,OverallQual,YearRemodAdd,YrSold,MoSold,HouseCondition)
+FE6
+```
+
+# Seventh featre Engineering, we want to convert varaiable from MoSold into month, example if 1 then is January, 2 is February and so on.
+# Assign new variable MonthSold.
+```{r}
+FE7 = df %>%
+  mutate(MonthSold = case_when(MoSold == "1" ~ "January", 
+                           MoSold == "2" ~ "February",
+                           MoSold == "3" ~ "March",
+                           MoSold == "4" ~ "April",
+                           MoSold == "5" ~ "May",
+                           MoSold == "6" ~ "June",
+                           MoSold == "7" ~ "July",
+                           MoSold == "8" ~ "August",
+                           MoSold == "9" ~ "September",
+                           MoSold == "10" ~ "October",
+                           MoSold == "11" ~ "November",
+                           MoSold == "12" ~ "December"))%>%
+  select(YearBuilt,OverallQual,YearRemodAdd,YrSold,MoSold,MonthSold)
+FE7
+```
+
+# Eighth feature engineering, we want which category houses fall into in regards to maintenance level. Example based on the HouseCondition variable, if a house is in a poor condition then is it not well maintained, if it is in excellent codition then it is very well maintained, etcetera.
+# Assign new variable HouseMtn.
+```{r}
+ih = c(1,2,3)
+pr = c(4,5,6)
+gd = c(7,8)
+xl = c(9,10)
+
+FE8 = df %>%
+  mutate(HouseMtn = case_when(OverallQual %in% ih ~ "Left Ignored", 
+                           OverallQual %in%  pr ~ "Not Well Maintained",
+                           OverallQual %in%  gd ~ "Well Maintained",
+                           OverallQual %in%  xl ~ "Very Well Maintained"))%>%
+  select(YearBuilt,OverallQual,YearRemodAdd,YrSold,MoSold,HouseMtn)
+FE8
+```
+
+# Ninth feature engineering, we want to know how much is the ratio between the The year it took for houses to be sold after remodification (Feature Engineering 3) to the year it took to be sold from the year houses were first built (Feature Engineering 2). 
+# Assign New variable YrRatio.
+```{r}
+Year1 = df$YrSold - df$YearRemodAdd
+Year2 = df$YrSold - df$YearBuilt
+FE9 = df %>%
+  mutate(YrRatio = (Year1/Year2))%>%
+  select(YearBuilt,OverallQual,YearRemodAdd,YrSold,MoSold,YrRatio)
+FE9
+```
+
+# Tenth feature enginering, we want to classify houses if it antique, Recent, or Modern.
+# Assign new variable HouseType.
+```{r}
+ht1 = c(1800:1950)
+ht2 = c(1951:2007)
+ht3 = c(2008:2021)
+
+FE10 = df %>%
+  mutate(HouseType = case_when(YearBuilt %in% ht1 ~ "Antique", 
+                           YearBuilt %in%  ht2 ~ "Recent",
+                           YearBuilt %in%  gd ~ "Modern"))%>%
+  select(YearBuilt,OverallQual,YearRemodAdd,YrSold,MoSold,HouseType)
+FE10
+```
+

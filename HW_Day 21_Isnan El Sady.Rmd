@@ -1,0 +1,146 @@
+# Assignment Day 21
+# Name : Isnan El Sady
+# Class : Data Science Batch 7
+
+# Importing Necessary Libraries
+```{r}
+library(dplyr)
+library(GGally)
+library(caret)
+library(caTools)
+```
+
+# Load Titanic Dataset
+```{r}
+set.seed(2233)
+df = read.csv('D:/Data_Science/Snakes/CSV/Titanic.csv')
+df = df[complete.cases(df),]
+str(df)
+```
+
+# Checking statistical summary of dataset
+```{r}
+summary(df)
+```
+Brief review of above statistical summary:
+Looking at some of the statistical values, of 12 total features included in dataset, 4 features with integer type should be of categorical type. The features are Pclass, Survived, SibSp and Parch. Those 4  have one thing in common, small range of numeric values from observations (rows), so it is safe to assume they fall to categorical.
+
+For age, Mean is higher than median, then the distribution of that feature a positive skewed.
+
+# Changing categorical features of Survived, Age and Pclass dataset to factor
+Because we want to focus on 4 Age, Survived, Pclass, and sex, then for this assignment we only change Survived and Pclass to factor. 
+```{r}
+df$Survived = factor(df$Survived)
+df$Pclass = factor(df$Pclass)
+```
+Sucessfully changed them to factors.
+
+
+# Exploratory Data
+# Plotting of Age, Pclass and Survived
+```{r}
+df %>%
+  ggplot(aes(y = Age, x = Pclass, fill = Survived)) +
+  geom_boxplot(outlier.shape = 8, outlier.size = 2,outlier.color = 'red') +
+  labs(x = 'Pclass', y = 'Age', title = 'BoxPlot of Age, Pclass and Survived') +
+  theme_minimal()
+```
+
+
+We can infer from the plot above, there's pattern for the Pclass. On average, Pclass 1 majority consist of older age group of people, followed by Pclass 2 with a slightly younger age group and then Pclass 3 is the youngest, albeit some of the passengers in Pclass 3 are an elderly.
+We also notice based on each Pclass, the younger age group survived more, on average.
+
+
+# Plotting of Age, Sex and Survived
+```{r}
+df %>%
+  ggplot(aes(y = Age, x = Sex, fill = Survived)) +
+  geom_boxplot(outlier.shape = 8, outlier.size = 2,outlier.color = 'red') +
+  labs(x = 'Sex', y = 'Age', title = 'BoxPlot of Age, Sex and Survived') +
+  theme_minimal()
+```
+
+
+In my opinion this plot by itself does not tell that much, but if we consider and take into account this and the plot shown previously. We can make an assumption. Lets focus on female first. The average age of those who did not survived are around 24 years, while for survived on average they slightly higher around 28 years. Now compare them to previous plot, the average age range of 24 is around the average of those who did not survived on Pclass 3, while the average age range of 28 is around those who survived in Pclass 2.
+Then we can assume the females who did not survive most likely are on Pclass 3, then who survived most likely are on Pclass 2.
+Moving on the males, using similar approach,  we can guess that majority of those survived most likely board on Pclass 2, while for the unsurvived are those who most likely board on Pclass 3 except for this unsurvived, i matched them with the boxplot with most outliers, then it is the PClass 3.
+
+
+# Plotting of Age, Sex and Pclass
+```{r}
+df %>%
+  ggplot(aes(y = Age, x = Pclass, fill = Sex)) +
+  geom_boxplot(outlier.shape = 8, outlier.size = 2,outlier.color = 'red') +
+  labs(x = 'Pclass', y = 'Age', title = 'BoxPlot of Age, Sex and Pclass') +
+  theme_minimal()
+```
+
+
+From this plot we can make a confirmation from the assumption we made above, to see if it matches with one another. For the survived females we assume are those who board on Pclass 2. The average female board on Pclass 2 are slightly beow 30 years of age, then it matches with what we assume, while for the unsurvived female we assume are those who board on Pclass 3, the average female age who board on Pclass 3 are above 20 years, so it matches with what we assume.
+Similar approach with the male one, the average age of male who board on Pclass 2 are the same with what we assume before, then it machtes that who survived most likely on Pclass 2, while for the unsurvived male, the average is also around the age of 30 years then it is also match with what we assume.
+
+I think these 4 features (Age, Survived, Pclass and Sex) provide us with a good parameters as well as insight about dataset. Personally those 4 are good enough to build a classification  model on which every passengers fall in to, survived or not survived.
+Lets to the classification modeling using Logistics regression.
+
+# Logistic Regression Modeling
+We first split the model to train and test with proprtion of 80% train and 20% test
+```{r}
+sample <- sample.split(df$Survived,SplitRatio = 0.8)
+df_train <- subset(df,sample==TRUE)
+df_test  <- subset(df,sample==FALSE)
+```
+
+# Executing the model
+Includes the 4 features prevously said.
+```{r}
+logreg = glm(Survived ~ Age + Pclass + Sex , df_train,family="binomial")
+summary(logreg)
+```
+At a glance, we can see from the summary of the logistic model, the features we chose are indeed significant to the model. By this we can make a pretty accurate result of prediction.
+
+# Testing model to test dataset
+Specific to logistic regression, we are using the response type to return the probability value.
+```{r}
+y_test_predict = predict(logreg,df_test,type = "response")
+y_test_predict
+```
+
+# Setting benchmark parameter
+Here we set parameter if the probablity s greater than 0.6 then they are considered survived from titanic.
+```{r}
+y_test_predict = factor(ifelse(y_test_predict>0.6,1,0))
+```
+
+# Confusion Matrix
+```{r}
+caret::confusionMatrix(y_test_predict,df_test$Survived,positive='1')
+```
+Interpretation:
+From this model we can see that the accuracy is good, around 0.8, but surely it is just another metric tool, we may want to look at the other parameters as well especially Sensitivity and Specificity ,but first lets define what both means.
+
+Sensitivity, or true positive rate, measures the ratio of how many true positive case are captured by the model per total actual positive from dataset.
+
+Specificity or true negative rate, measures the ratio of how many true negative case are captured by the model per total actual negative from dataset.
+
+So for our model, here we have sensitivity of 0.7069 and specificity of 0.9176.
+It means that the model predicts actual positive case by 70 % and it is able to predict actual negative by 90%.
+
+Out of total 58 actual positive,people who are survived, the model correctly predicts 41 of them survived while the other 17 are wrongly predicted as not survived. Similar to that also, the model correctly predicts 78 people out of actual 85 who did not survived but wrongly predict the rest 7 as survived.
+
+Which ultimately leads us to the question..
+
+# Why is the model able to predict and or make the wrong choices? Is it reasonable for the model to make the wrong predictions?
+
+For this particular logistic regression model, i think the reasoning behind why it happens is because some of the resulted probability value are at the worst possible probability of 0.5. The thing is 0.5 means that a person has a 50 to 50 chance of both survived and not survived, it could be either, we cant exactly sure, which is why it is ambiguous to say the least. It is different say if a probability of a passenger is at 0.8, we can assume most likely they will survive or at 0.3, we can also assume they will most likely not survived.
+This is most likely why the mmodel make the wrong predicitons in my opinion.
+
+# Bonus Answer
+
+"A models is as good as the one who operates them". 
+At the end of the day, a machine learning model is created, controlled and operated by a person. So, no matter how good, how complex and how sophisticated a model is, if one does not know how to use them properly then is as good as junk. I contrast tno a simple model but the one operating behind it knows what he / she is doing, it is as good as that complex model said above.
+Each Machine learning model thrives in their own various way, very specific to a certain types of problem(s) / task that we want to solve. If we use them properly and correctly they will give us a great result /  outcome fo that specific  problems, otherwise we may just face with lots of unnecessary erros or wrong predictions.
+
+So, is it reasonable for machine learning to make mistake? 
+Its not a straight Yes/ No answer. To some extent yes it is reasonable, but to some other extent, it is not, it heavily depends on which circumstances we are currently in and what problems we want to solve. For me, understanding more about each machine learning models and which best are to used for given problems. 
+
+

@@ -1,0 +1,129 @@
+-------
+Assignment Day 14
+Exploratory Data Analysis
+Name : Isnan El Sady
+Class : Data Science Batch 7
+--------
+
+```{r}
+# Load libraries
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(lubridate)
+library(ggplot2)
+library(plotly)
+```
+
+```{r}
+# Load Ames house Dataset
+ames = read.csv('D:/Data_Science/Snakes/CSV/Ames train.csv')
+```
+
+```{r}
+# Ames Dataset glimpse
+glimpse(ames)
+```
+
+# Analysis on target variable (SalePrice)
+First thing is we may want to check the descriptive statistics of the variable. the likes of mean, median and its quantile.
+```{r}
+ames %>%
+  select(SalePrice) %>%
+  summary()
+```
+At a glance seeing the mean value a bit higher than the median value, indicates that perhaps there are outliers. Also the gap between the 3rd quantile value and max value of this variable is quite big as well, indicating that there are perhaps outliers.Plotting the histogram of the variable..
+```{r}
+ames %>%
+  ggplot(aes(SalePrice)) +
+  geom_histogram(fill =  '#2aab55', bins = 40) +
+  labs(x = 'Mes Houses Sale Price Tag', y = 'Sum', title = 'Histogram of House Sale Price in Ames', subtitle = 'Distribution of Houses Sale Prices in Ames ') +
+  theme_minimal()
+```
+
+It very clear by the positively-skewed histogram above, that there are indeed outliers in SalePrice variable. Log will be performed to this variable to make the dsitribution appear or near normal distribution.
+```{r}
+# Create a new columns of log distribution for SalePrice variable
+ames = ames %>%
+  mutate(LogSalePrice = log(SalePrice))
+```
+
+```{r}
+# Creating a histogram plot of newly normally distributed of Sale Price
+ames %>%
+  ggplot(aes(LogSalePrice)) +
+  geom_histogram(fill =  '#2aab55', bins = 40) +
+  labs(x = 'Ames Houses Sale Price Tag (log)', y = 'Sum', title = 'Histogram of House Sale Price in Ames', subtitle = 'Distribution of Houses Sale Prices in Ames ') +
+  theme_minimal()
+```
+The distribution of this variable now has been changed to near normal. This is performed as it simplify us to do a further analysis down the line using this particular variable. Next, we may want to compare the histogram before and after applying log to the distribution of the variable.
+```{r}
+# Comparing Before and After performed Log 
+p1 = ames %>% 
+  ggplot(aes(x=SalePrice))+geom_histogram(bins = 40,fill='white',color='black',aes(y=..density..),size=0.5)+geom_density(fill='#0af7e9',alpha=0.2,size=0.7,aes(y=..density..))+theme_minimal()+geom_vline(aes(xintercept=mean(SalePrice)),color="black", linetype="dashed", size=1)+labs(x='SalePrice', y = 'Count')
+p1
+```
+```{r}
+p2 = ames %>% 
+  ggplot(aes(x=LogSalePrice))+geom_histogram(bins = 40,fill='white',color='black',aes(y=..density..),size=0.5)+geom_density(fill='#0af7e9',alpha=0.2,size=0.7,aes(y=..density..))+theme_minimal()+geom_vline(aes(xintercept=mean(LogSalePrice)),color="black", linetype="dashed", size=1)+labs(x='logSalePrice', y = 'Count')
+p2
+```
+```{r}
+# Checking the summary statistics after using log function
+ames %>%
+  select(LogSalePrice) %>%
+  summary()
+```
+The log function appears to have transformed the distribution succesfully as depicted in 2 above hitograms. Before applying the log function, the distribution for the SalePrice is positively-skewed, now has been normlalized to a certain scale. Notice also from the summary statistics after applying log function the median and mean value are much closer to each other compared to prior log.
+
+Next we want to figure out how this variable LogSalePrice correlates with other variables.
+```{r,fig.width=18}
+cr1 = ames %>% select_if(is.numeric) %>% cor()
+cr1 %>% corrplot::corrplot(type='lower',method = 'number')
+```
+It can be inferred from the correlation graph above, both SalePrice and LogSalePrice notably have a considebirely high correlation with OverallQuality, GrLivArea, followed by GarageCars, GarageArea and lastly are a tie between TotalBsmtF and X1stFlrSf with a value of 0.82, 0.70, 0.68, 0.65 and 0.61.
+
+A higher correlation number between SalePrice and OverallQuality of a house is very reasonable, a house having a higher quality is bound to have a higher price tag also. The same can be said for the correlation between SalePrice and GreenLivingAre, a greean living are of a house will result in a hihger price tag as well. In the case for correlation of SalePrice between the other 3 variables (GarageCars,GarageArea,TotalBsmtf,XlsFlrSf) to an extent, yes we can perhaps infer that those variables could  partly contributes to a higher houses price tag but it does not tell the whole story though, due to their correlation with Salerice are not that high, hence we need to further analyse dataset.
+
+# Checking if a higher of a house does indeed correlates with a higher price tag and vice versa.
+There's this common notion that a higher quality of a house will have a tendency of higher price tag also. Now we want to check if it is indeed the case. For this we need to analyse the correlation of OverallQuality with other variables.
+```{r,fig.width=18}
+cr1 = ames %>% select_if(is.numeric) %>% cor()
+cr1 %>% corrplot::corrplot(type='lower',method = 'number')
+```
+
+Using the same correlation graph as before, we can infer that OverallQuality almost has no strong positive correlation with other variables, except for SalePrice and GarageCars with a value of 0.79 and 0.69, while the correlation value with the rest variables are all below 0.60. Of the rest variables, notably there are 6 variables correlated with it which have a value of around 0.5 - 0.6. Those are, GarageAream, FullBath, GrLivArea, TotalBsmtSF, YearBuilt and lastly YearRemodAdd. It is reasonable that a higher quality of house will bound to have a higher price tag. Part of why this is true is because, while yes the variables does not have many strong positive correlation, but, we have to also consider the correlation as well. True those corelation are not that particularly high but it still counts and need to be accounted as well.
+
+# Why newer houses are more expensive than the older ones?
+Here we want to check if it is true newer model always has very high price tag. Lets try explore the data bit.
+```{r}
+ames %>% 
+  select(YearBuilt,YearRemodAdd,OverallQual,SalePrice)%>%
+  arrange(desc(SalePrice))
+```
+It is clear from the brief dataset above when we sorted from the highest to lowest sale price, one standout factor which very heavily influences the sale price / higher price tag, are not the year at which the house was built, but rather the house overall quality. It shown fomr the dataset, house built in 1994, remodified the year after has the highest price tag al off houses, this is due to the quality of the house is indexed 10 (high quality) thus making it the most expensive.
+
+So no, newer house does not guarantee higher price tag, but rather the overall quality of a house is what mostly determines its price regardless of year the house was built. So long as the house is kept clean and furnished properly, the price stay high.
+
+# Checking about a haunted house??
+```{r}
+ames %>%
+  ggplot(aes(x=GrLivArea, y=SalePrice)) +
+  geom_point()
+```
+```{r}
+ames %>% 
+  filter(GrLivArea > 4000)%>%
+  arrange(desc(SalePrice))
+```
+It is clear why the two houses were very not expensive. It is because its a partial sale, meaning the owner who buy the house only buy a portion of the house, and not all. Or you can say the owner not fully own 100% of the house they bought. Hence the price its quite cheap compared to house with the same condition but in normal sale condition.
+
+
+
+
+
+
+
+
+
+

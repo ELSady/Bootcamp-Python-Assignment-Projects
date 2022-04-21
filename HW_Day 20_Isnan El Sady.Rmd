@@ -1,0 +1,243 @@
+## Day 20 Assignment Regularized Regression
+## Name : Isnan El Sady
+## Class : Data Science Batch 7
+
+
+# Importing Necessary Libraries
+```{r}
+library(ggplot2)
+library(caTools)
+library(tidyverse)
+library(dplyr)
+library(psych)
+library(car)
+library(glmnet)
+```
+Specifying libraries which will be used in this regression homework, the libraries include:
+-caTools for splitting our dataset
+-tidyverse and dplyr for data / feature manipulation and pipe operator 
+-psych for plotting our correlations inbetween features of our dataset
+-car a tool to calculate the VIF / checking Multicollinearity from our linear regression model
+-glmnet for executing our regularized regression ridge and lasso
+
+
+# Load Dataset
+```{r}
+boston = read.csv('D:/Data_Science/Snakes/CSV/Boston.csv')
+boston
+```
+The dataset used in this homework is housing prices located in boston city
+
+
+# Applying Reguler Regression to check Multicolinearity inbetween features
+Before executing the regularized regression, we will first do reguler regression model to dataset. This is done to measure the Variance Inflation Factor of the model and determine whether there's any multicolinearity between features. This step also help us highlighting the standout feature(s).
+
+But before that...
+Splitting our dataset into three, train, test and validations.
+-train is used to train our model 
+-validations is used to confirm which parameter, in this case lambda is the best to use
+-test is used to evaluate our selected models
+
+# Split dataset to tow sets, train and test
+```{r}
+set.seed(123)
+sample = sample.split(boston$medv, SplitRatio = .80)
+pre_train = subset(boston, sample == TRUE)
+test = subset(boston, sample == FALSE)
+
+sample_train = sample.split(pre_train$medv, SplitRatio = .80)
+train = subset(pre_train, sample_train == TRUE)
+validations = subset(pre_train, sample_train == FALSE)
+```
+train dataset comprises roughly around 64% (0.8 x 0.8) of our total boston dataset, validations is around 16% (0.8 x 0.2) meanwhile test is 20%.
+
+Executing regular regression model to train dataset.
+# Reguler Regression Model
+```{r}
+medv_lm1 = lm(medv ~ ., data=train)
+summary(medv_lm1)
+```
+
+Measuring the Variance Inflation Factor Using the value of 5 for VIF as the benchmark of high multicollinearity between features.
+# Variance Inflation Factor
+```{r}
+vif(medv_lm1)
+```
+Clearly seen from the result there are notably two features having a high value of VIF, tax and rad. Both feature's value are higher than 5, so they are likely will be the dropped features. 
+
+Now we move on to plot features correlations of our boston dataset.
+# Pairplot correlation analysis
+```{r}
+pairs.panels(train, 
+             method = "pearson", # correlation method
+             hist.col = "#00AFBB",
+             density = TRUE,
+             ellipses = TRUE 
+)
+```
+In line to VIF value which we got above, both tax and rad feature are indeed having high correlation with each other at 0.90. So either is going to be dropped. But which one?
+
+Here we may want to see both features correlation with medv (house price), then we select feature which has higher correlation with medv, the other then will be dropped, as it been represented by the selected feature. 
+
+-rad and medv has a correlation value of -0.45
+-tax and medv has a correlation value of -0.53
+
+tax feature it is then which will be dropped.
+
+# Dropping Selected Features
+Move on to dropping the feature tax from our train, validations and test datasets.
+```{r}
+drop_cols = c('tax')
+
+validations = validations %>% select(-drop_cols)
+train = train %>% select(-drop_cols)
+test = test %>% select(-drop_cols)
+```
+
+# Feature Preprocessing
+Feature pre processing is to handle our categorical feature if there's any.
+```{r}
+x_train = model.matrix(medv ~ ., train)[,-1]
+y_train = train$medv
+```
+
+# Fit Multiple Ridge Regression with different lambdas to train dataset
+Using four different lambdas value at 0.01, 0.1, 1 and 10.
+```{r}
+ridge_reg_001 = glmnet(x_train, y_train, alpha = 0, lambda = 0.01)
+coef(ridge_reg_001)
+
+ridge_reg_01 = glmnet(x_train, y_train, alpha = 0, lambda = 0.1)
+coef(ridge_reg_01)
+
+ridge_reg_1 = glmnet(x_train, y_train, alpha = 0, lambda = 1)
+coef(ridge_reg_1)
+
+ridge_reg_10 = glmnet(x_train, y_train, alpha = 0, lambda = 10)
+coef(ridge_reg_10)
+```
+
+# Fit Multiple Lasso Regression with different lambdas to train dataset
+Using four different lambdas value at 0.01, 0.1, 1 and 10.
+```{r}
+lasso_reg_001 = glmnet(x_train, y_train, alpha = 1, lambda = 0.01)
+coef(ridge_reg_001)
+
+lasso_reg_01 = glmnet(x_train, y_train, alpha = 1, lambda = 0.1)
+coef(ridge_reg_01)
+
+lasso_reg_1 = glmnet(x_train, y_train, alpha = 1, lambda = 1)
+coef(ridge_reg_1)
+
+lasso_reg_10 = glmnet(x_train, y_train, alpha = 1, lambda = 10)
+coef(ridge_reg_10)
+```
+
+# Comparing on the validations set to choose the best lambda
+Using RMSE as a metric to measure how well our model perform and determine which is the best lambda for our model. The lambda with least RMSE is preferred.
+```{r}
+x_validations = model.matrix(medv ~., validations)[,-1]
+y_validations = validations$medv
+```
+
+
+# Calculating RMSE for each Lasso regression with that different lambdas
+```{r}
+RMSE_lasso_001 = sqrt(mean((y_validations - predict(lasso_reg_001, x_validations))^2))
+print(RMSE_lasso_001)
+
+RMSE_lasso_01 = sqrt(mean((y_validations - predict(lasso_reg_01, x_validations))^2))
+print(RMSE_lasso_01)
+
+RMSE_lasso_1 = sqrt(mean((y_validations - predict(lasso_reg_1, x_validations))^2))
+print(RMSE_lasso_1)
+
+RMSE_lasso_10 = sqrt(mean((y_validations - predict(lasso_reg_10, x_validations))^2))
+print(RMSE_lasso_10)
+```
+We can infer from results above that the higher the lambda used, the higher also the RMSE of the model. Then, the best lambda to use is 0.01.
+
+
+# Calculating RMSE for each Ridge regression with that different lambdas
+```{r}
+RMSE_ridge_001 = sqrt(mean((y_validations - predict(ridge_reg_001, x_validations))^2))
+print(RMSE_ridge_001)
+
+RMSE_ridge_01 = sqrt(mean((y_validations - predict(ridge_reg_01, x_validations))^2))
+print(RMSE_ridge_01)
+
+RMSE_ridge_1 = sqrt(mean((y_validations - predict(ridge_reg_1, x_validations))^2))
+print(RMSE_ridge_1)
+
+RMSE_ridge_10 = sqrt(mean((y_validations - predict(ridge_reg_10, x_validations))^2))
+print(RMSE_ridge_10)
+```
+Similar to that of lasso, the higher the lambda, the higher also the RMSE of the model. The best lambda is 0.01.
+
+Next
+Retrieving the coefficient of model at 0.01 lambda for both Ridge and Lasso.
+# Best Ridge Model with the least RMSE is at lambda 0.01
+```{r}
+coef(ridge_reg_001)
+```
+Ridge model interpretation:
+The model has an intercept of 32.92, meaning when the predictors feature are at 0. The value predicted is at that value.
+For predictors feature we take example of nox. An increase of 1 point of nox feature will result in reduction of 19.45 points to medv, assuming all other predictors are kept fixed. The same can be said to rm, an increase of 1 point of it will result in an increase of 4.3 points of medv.
+
+
+# Best Lasso Model with the least RMSE is at lambda 0.01
+```{r}
+coef(lasso_reg_001)
+```
+Lasso Model Interpretation:
+The model has an intercept of 32.39, meaning when the predictors feature are at 0. The value predicted is at that value.
+Similar to ridge above, for predictors we take example of nox. An increase of 1 point of nox feature will result in reduction of 18.97 points to medv, assuming all other predictors are kept fixed. The same can be said to rm, an increase of 1 point of it will result in an increase of 4.3 points of medv.
+
+
+# Model Evaluation on test data
+Here we are going to evaluate the model we have been working on up to now. Using RMSE, MAPE and MAE.
+RMSE is a measure of how spread our residuals are wiht respect to regression line
+MAE is how far our models prediction from actual data on average in absolute basis
+MAPE is how far our model's prediction relative to the actual data on average in relative percentage basis.
+
+```{r}
+x_test = model.matrix(medv ~., test)[,-1]
+y_test = test$medv
+```
+
+# RMSE MAPE, MAE of RIdge Best Model
+```{r}
+RMSE_ridge_best = sqrt(mean((y_test - predict(ridge_reg_001, x_test))^2))
+print(RMSE_ridge_best)
+
+MAPE_ridge_best = mean(abs((predict(ridge_reg_001, x_test) - y_test))/y_test)
+print(MAPE_ridge_best)
+
+MAE_ridge_best = mean(abs((predict(ridge_reg_001, x_test) - y_test)))
+print(MAE_ridge_best)
+```
+Ridge model test data evaluation:
+RMSE of 6.66 means the standard deviation of predicted errors are 6.66 or from the regression line, residuals deviate between +- 6.66.
+MAPE of 0.17 means our residuals deviate roughly  17 percent from the actual value.
+MAE of 3.9 means our predictions on average deviates around 3.9 points with respect to actual value.
+
+
+# RMSE MAPE, MAE of Lasso Best Model
+```{r}
+RMSE_lasso_best = sqrt(mean((y_test - predict(lasso_reg_001, x_test))^2))
+print(RMSE_lasso_best)
+
+MAPE_lasso_best = mean(abs((predict(lasso_reg_001, x_test) - y_test))/y_test)
+print(MAPE_lasso_best)
+
+MAE_lasso_best = mean(abs((predict(lasso_reg_001, x_test) - y_test)))
+print(MAE_lasso_best)
+```
+Lasso model test data evaluation:
+RMSE of 6.67 means the standard deviation of predicted errors are 6.67 or from the regression line, residuals deviate between +- 6.67.
+MAPE of 0.17 means our residuals deviate roughly  17 percent from the actual value.
+MAE of 3.9 means our predictions on average deviates around 3.9 points with respect to actual value.
+
+
+Conclusion, there's hardly any difference between ridge and lasso model in regards to our boston dataset. The two perform quite similar.
+

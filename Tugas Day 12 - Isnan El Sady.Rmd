@@ -1,0 +1,79 @@
+# Day 12 Assigment
+# Nama : Isnan El Sady
+# Data Science Batch 7
+
+```{r}
+# Load library 
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+```
+
+```{r}
+# Load Dataset Ames House 
+ames = read.csv('D:/Data_Science/Snakes/CSV/train.csv')
+```
+
+```{r}
+# Ames House dataset glimpse
+glimpse(ames)
+
+```
+
+# Question 1 
+# Count and visualize one categorical feature of dataset.
+# Choosing GarageType variable from dataset
+```{r}
+ames %>%
+  drop_na(GarageType) %>%
+  ggplot(aes(fct_rev(fct_infreq(GarageType)))) +
+  geom_bar(fill =  '#218bf0' ) +
+  coord_flip() +
+  labs(x = 'Houses Garage Types Available', y = 'Sum', title = 'Houses Garages Types Count In Ames', subtitle = 'How Many Types of Garage Availabe in Ames Housing?') +
+  theme_minimal()
+```
+# Insight 
+# There are 6 six different types of garage available in Ames Housing, with the Attached type having the most count, followed by Dettached type in second and Built-in type in third. 
+
+# Question 2
+# Distribution of one continous feature
+# CHoosing Overall COnd vaariable of dataset
+```{r}
+ames %>%
+  drop_na(OverallCond) %>%
+  ggplot(aes(OverallCond)) +
+  geom_histogram(fill =  '#2aab55', binwidth = 1) +
+  labs(x = 'Houses Overall Condition (higher is better)', y = 'Sum', title = 'Histogram of Houses Overall Condition', subtitle = 'How is the distribution of Houses Overall Condition in Ames Housing?') +
+  theme_minimal()
+```
+# Insight 
+# Most houses condition in Ames fall in to the average region, indexed by 5. WIth an astounding count of 800 houses,
+
+# Question 3
+# Visualize both one categorical feature and continous feature
+# Choosing Sale Condition adn SalePrice variables
+```{r}
+ames %>%
+  drop_na(SaleCondition,SalePrice) %>%
+  ggplot(aes(y = SalePrice, fill = SaleCondition)) +
+  geom_boxplot(outlier.shape = 8, outlier.size = 2,outlier.color = 'red') +
+  labs(x = NULL, y = 'Sum', title = 'BoxPlot of Houses Sale Price grouped by Houses Sale Condition', subtitle = 'How is the Houses Sale Price when compared based on Houses Sale Condition?') +
+  theme_minimal()
+```
+# Insight 
+# Price most houses sold in normal condition are much lower than that of houses sold in partial condiiton. However, some houses sold in normal are sold in a much much larger  price tag. This indicates that perhaps some of that house have a very very goood overall condition.
+
+# Question 4
+# Visualize two continous feature 
+# Choosing SalePrice and OverallQuality variables.
+```{r}
+mycolors = c('#e30a38','#e705ee','#f7ef08','#27caca','#d415ea','#0db7f7')
+ames %>%
+  drop_na(OverallQual,SalePrice) %>%
+  ggplot(aes(x = SalePrice, y = OverallQual)) +
+  geom_point(color = 'brown', size = 3) +
+  labs(x = 'Houses Sale Price', y = 'Houses Overall Quality', title = 'Scatterplot of Houses Sale Price over Houses Overall Quality', subtitle = 'How is the Houses Sale Price when compared based on Houses Quality?') +
+  theme_minimal()
+```
+# Insight
+# A higher number of houses quality mostly results in higher price tag. However, there are some houses in encellent quality (indexed by 10) which have a lower price tag several houses. Perhaps it is because the house is indeed in excellent but have a significantly very small area m2.

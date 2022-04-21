@@ -1,0 +1,90 @@
+# Assigment Day 24 
+# Name : Isnan El Sady
+# Class : Data Science Batch 7
+
+# Load Necessary Libraries
+```{r}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(cluster)
+library(factoextra)
+```
+
+# Load Iris Dataset
+Because this data is already on the R database itself, we an just call it without using any external file to be loaded. Then, we may want to remove some of its label, so that dataet can be considered as unlabelled for our analysis
+
+```{r}
+data(iris)
+# Removing the 'Bunga' Label so that the data will be considered as unlabeled
+df = cbind(iris$Sepal.Length, iris$Sepal.Width, iris$Petal.Length, iris$Petal.Width)
+df
+```
+
+# Principal Component Analysis Execution
+Executing Principal Components Analysis on the dataset.
+```{r}
+pca_iris = prcomp(df, center = TRUE, scale = TRUE)
+summary(pca_iris)
+```
+Looking at the pca summary, we can see that the PC2 Cumulatie Proportion is at 0.958. Meaning, even with the reduction of 50% of our dataset (reduction to 2 dimensions), this new data still can retain and explain the 95% percent informations contain within, half the size amount of pre-reduction but with a little lost of informations.
+
+Next we are looking at how much is the Eigenvalues for both PC1 and PC2. Here, we can simply square the standard deviation for both variables so that we are able to determine the eigenvalues.
+
+
+# Determining Eigenvalues of Iris PC1 and PC2
+```{r}
+pca_iris$sdev^2
+```
+The Eigenvalues for PC1 and PC2 are at 2.91 and 0.91 respectively. Next we take only 2 dimensions from dataset, reducing the 3rd and 4th column. 
+
+# Iris PCA Sample Reduction to 2.
+```{r}
+pca_iris_2d = pca_iris$x[,1:2]
+pca_iris_2d
+
+```
+Full glimpse of the newly reducted iris dataset to 2 dimensions.
+We move on to using K Means Clustering.
+
+# K Means Clustering of New Iris Dataset
+Using our newly reducted iris dataset above, we want to make a K Means model of it. A bit different with that of Principal Component Analyis in which we can automatically standardize our data altogether as we execute our model to data, here in K Means however, we first have to manually scaled / standardize the data due to the model lacks of a built in scaling option unlike PCA. 
+We may wnat to rename the new iris dataset to transformed_iris.
+
+```{r}
+transformed_iris = pca_iris_2d
+
+transformed_iris_scld = scale(transformed_iris)
+
+# K Means of New Iris Dataset
+k_2 = kmeans(df, centers = 2, nstart = 50)
+k_2 = kmeans(df, centers = 2, nstart = 50)
+k_2
+
+fviz_cluster(k_2, data = transformed_iris_scld)
+
+```
+The plot above shows the result of our K Means clustering model using 2 clusters (k value). From this plot alone, i think the data is distinct enough. We can see the data is spread quite well, theres ones on the left and ones on the right, albiet with the exception, the ones, especially on the top which are clustered towards the center. SO now we want to evaluate the model using 2 different methods to know if our k value of 2 is optimum otherwise we may want to determine the other optimum k value.
+On to the evaluation.
+
+# K Means Model Evaluation using Elbow and Silhouette Method
+```{r}
+# Elbow Method
+
+fviz_nbclust(transformed_iris_scld, kmeans, method = 'wss')
+
+# Silhoutte Method
+
+fviz_nbclust(transformed_iris_scld, kmeans, method = 'silhouette')
+```
+As we can see these 2 evaluation methods above have 2 different optimum k values. Ones is at 3 and the other is at 3 for optimum k value. Personally, i think the best k value is at 3, this is taking into account to what is said previously, theres data, especially on top half of the plot, are clustered towards the center, not towards left or right, not distinct enough to be part of those two clusters , hence they belong to their own cluster groups and this is why 3 is the optimum k value.
+
+Executing and plotting K Means model at K value of 3.
+
+# K Means Value of 3 as My Optimum K Value
+```{r}
+k_3 = kmeans(transformed_iris_scld, centers = 3, nstart = 50)
+fviz_cluster(k_3, data = transformed_iris_scld)
+
+```
+Now dataset are clusered accordingly.
